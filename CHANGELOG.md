@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.2](https://github.com/Payfast/payfast-common/releases/tag/v1.2.2)
+
+### Improved
+
+- Amend **placeRequest()** to accept **timestamp** and **version** if sent in **$body**.
+- Empty **$body** if **action** is set. This is used for **Query/Retrieve Refund**.
+
+### Removed
+
+- Obsolete sample code.
+
 ## [1.2.1](https://github.com/Payfast/payfast-common/releases/tag/v1.2.1)
 
 ### Changed

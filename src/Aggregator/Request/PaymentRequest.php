@@ -425,12 +425,17 @@ class PaymentRequest
     {
         $date      = date("Y-m-d");
         $time      = date("H:i:s");
-        $timeStamp = $date . "T" . $time;
+        $timeStamp = $body['timestamp'] ?? $date . "T" . $time;
+        $version   = $body['version'] ?? "v1";
         $pfData    = [
             "merchant-id" => $merchantID,
             "timestamp"   => $timeStamp,
-            "version"     => "v1",
+            "version"     => $version,
         ];
+
+        if (array_key_exists('action', $body)) {
+            $body = [];
+        }
 
         $pfData = array_merge($pfData, $body);
 
@@ -438,7 +443,7 @@ class PaymentRequest
 
         $headers = [
             "merchant-id: $merchantID",
-            "version: v1",
+            "version: $version",
             "timestamp: $timeStamp",
             "signature: $signature",
         ];
