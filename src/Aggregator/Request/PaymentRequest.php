@@ -334,6 +334,7 @@ class PaymentRequest
      * @param array $data
      * @param $passphrase
      * @param bool $testMode
+     * @param bool $returnCurlRequest
      *
      * @return string
      */
@@ -343,7 +344,8 @@ class PaymentRequest
         $action,
         array $data = [],
         $passphrase = null,
-        bool $testMode = false
+        bool $testMode = false,
+        bool $returnCurlRequest = false
     ): string {
         $url = "https://api.payfast.co.za/subscriptions/$token/$action";
 
@@ -359,7 +361,7 @@ class PaymentRequest
             default => null,
         };
 
-        return $this->placeRequest($url, $merchantID, $passphrase, $data, $method);
+        return $this->placeRequest($url, $merchantID, $passphrase, $data, $method, $returnCurlRequest);
     }
 
     /**
@@ -370,6 +372,8 @@ class PaymentRequest
      * @param $paymentID
      * @param $action
      * @param array $data
+     * @param bool $testMode
+     * @param bool $returnCurlRequest
      *
      * @return string
      */
@@ -379,7 +383,8 @@ class PaymentRequest
         $paymentID,
         $action,
         array $data = [],
-        $testMode = false
+        bool $testMode = false,
+        bool $returnCurlRequest = false
     ): string {
         $url    = "https://api.payfast.co.za/refunds/";
         $method = "GET";
@@ -392,7 +397,7 @@ class PaymentRequest
 
         $url .= $testMode ? "$paymentID?testing=true" : "$paymentID";
 
-        return $this->placeRequest($url, $merchantID, $passphrase, $data, $method);
+        return $this->placeRequest($url, $merchantID, $passphrase, $data, $method, $returnCurlRequest);
     }
 
     /**
@@ -418,11 +423,18 @@ class PaymentRequest
      * @param null $passphrase
      * @param array $body
      * @param null $method
+     * @param bool $returnCurlRequest
      *
      * @return string
      */
-    public function placeRequest($url, $merchantID, $passphrase = null, array $body = [], $method = null): string
-    {
+    public function placeRequest(
+        $url,
+        $merchantID,
+        $passphrase = null,
+        array $body = [],
+        $method = null,
+        bool $returnCurlRequest = false
+    ): string {
         $date      = date("Y-m-d");
         $time      = date("H:i:s");
         $timeStamp = $body['timestamp'] ?? $date . "T" . $time;
@@ -469,6 +481,32 @@ class PaymentRequest
 
         if (curl_errno($ch)) {
             return curl_error($ch);
+        }
+
+        if ($returnCurlRequest) {
+            // Determine the HTTP method for the bash command and cURL request
+            if ($method === "PUT" || $method === "PATCH") {
+                $bashMethod = $method;
+            } elseif (!empty($body)) {
+                $bashMethod = "POST";
+            } else {
+                $bashMethod = "GET";
+            }
+
+            // Build the bash curl command
+            $bashCommand = "curl -X " . escapeshellarg($bashMethod);
+            foreach ($headers as $header) {
+                $bashCommand .= " -H " . escapeshellarg($header);
+            }
+            if (!empty($body) && in_array($bashMethod, ["POST", "PUT", "PATCH"])) {
+                $bashCommand .= " --data " . escapeshellarg(http_build_query($body));
+            }
+            $bashCommand .= " " . escapeshellarg($url);
+
+            $response = json_encode([
+                                        'request'  => $bashCommand,
+                                        'response' => $response,
+                                    ]);
         }
 
         return $response;
